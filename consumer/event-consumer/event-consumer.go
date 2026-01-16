@@ -2,6 +2,8 @@ package event_consumer
 
 import (
 	"gogobot/events"
+	"gogobot/events/telegram"
+	"gogobot/events/telegram/types"
 	"log"
 	"time"
 )
@@ -46,16 +48,26 @@ func (c EventConsumer) Start() error {
 3. Параллельная обработка
 */
 
-func (c *EventConsumer) handleEvents(events []events.Event) error {
-	for _, event := range events {
-		log.Printf("got new event: %s", event.Text)
-
-		if err := c.processor.Process(event); err != nil {
-			log.Printf("[ERR] processor had met an error:  %s", err.Error())
-
-			continue
+func (c *EventConsumer) handleEvents(eventsFor []events.Event) error {
+	for _, event := range eventsFor {
+		switch event.Type {
+		case events.Message:
+			payload := event.Payload.(types.MessagePayload)
+			meta := event.Meta.(telegram.Meta)
+			log.Printf("got message from %s: %s", meta.Username, payload.Text)
+		case events.Callback:
+			payload := event.Payload.(types.CallbackPayload)
+			meta := event.Meta.(telegram.Meta)
+			log.Printf("got callback from %s: %s", meta.Username, payload.Data)
+		default:
+			log.Printf("got unknown event type")
 		}
 
+		if err := c.processor.Process(event); err != nil {
+			log.Printf("[ERR] processor had met an error: %s", err)
+			continue
+		}
 	}
+
 	return nil
 }
