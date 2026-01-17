@@ -14,6 +14,7 @@ type Storage interface {
 	Remove(p *Page) error
 	IsExists(p *Page) (bool, error)
 	Count(userName string) (int, error)
+	List(userName string) ([]*Page, error)
 }
 
 var ErrNoSavedPages = errors.New("no saved pages")

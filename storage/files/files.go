@@ -61,8 +61,12 @@ func (s Storage) PickRandom(userName string, mode string) (page *storage.Page, e
 	files, err := os.ReadDir(path)
 
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, storage.ErrNoSavedPages
+		}
 		return nil, err
 	}
+
 	if len(files) == 0 {
 		return nil, storage.ErrNoSavedPages
 	}
@@ -138,10 +142,6 @@ func (s Storage) decodePage(filePath string) (page *storage.Page, err error) {
 	return &p, nil
 }
 
-func fileName(p *storage.Page) (string, error) {
-	return p.Hash()
-}
-
 func (s Storage) Count(userName string) (int, error) {
 	dir := filepath.Join(s.basePath, userName)
 	files, err := os.ReadDir(dir)
@@ -156,4 +156,44 @@ func (s Storage) Count(userName string) (int, error) {
 
 	return len(files), nil
 
+}
+
+func (s Storage) List(userName string) ([]*storage.Page, error) {
+	var pages []*storage.Page
+
+	dir := filepath.Join(s.basePath, userName)
+	files, err := os.ReadDir(dir)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, e.Wrap("can't read dir", err)
+	}
+	for _, file := range files {
+
+		fileToList, err := s.decodePage(filepath.Join(dir, file.Name()))
+		pages = append(pages, fileToList)
+		if err != nil {
+			return nil, e.Wrap("can't decode file", err)
+		}
+
+	}
+	return pages, nil
+
+}
+
+//func (s Storage) FilterBy(userName string, query string) ([]*storage.Page, error) {
+//	pages := s.List(userName)
+//	filteredPages := make([]*storage.Page, 0, len(pages))
+//
+//	for _, page := range pages {
+//		urlFromPage := page.URL
+//
+//	}
+//}
+
+func fileName(p *storage.Page) (string, error) {
+	return p.Hash()
 }

@@ -12,26 +12,19 @@ import (
 )
 
 const (
-	HelpCmd = "/help"
-
+	HelpCmd  = "/help"
 	StartCmd = "/start"
 	CountCmd = "/count"
-
 	PickMode = "/pick"
 	PeekMode = "/peek"
 	MenuMode = "/menu"
+	ListCmd  = "/list"
 )
 
 func (p *Processor) doCmd(text string, chatID int, username string) error {
 	text = strings.TrimSpace(text)
 
 	log.Printf("got new command: %s from %s", text, username)
-
-	//add page: http://...
-	// rnd page: /rnd
-	// help: /help
-	// start: /start: hi + help
-
 	if isAddCmd(text) {
 		return p.savePage(chatID, text, username)
 	}
@@ -47,6 +40,8 @@ func (p *Processor) doCmd(text string, chatID int, username string) error {
 		return p.sendHello(chatID)
 	case CountCmd:
 		return p.sendCount(chatID, username)
+	case ListCmd:
+		return p.sendList(chatID, username)
 	case MenuMode:
 		return p.sendMenu(chatID, username)
 	default:
@@ -88,12 +83,12 @@ func (p *Processor) sendRandom(chatID int, username string, mode string) (err er
 
 	page, err := p.storage.PickRandom(username, mode)
 
-	if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
-		return err
-	}
-
 	if errors.Is(err, storage.ErrNoSavedPages) {
 		return p.tgClient.SendMessage(chatID, msgNoSavedPages)
+	}
+
+	if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
+		return err
 	}
 
 	if err := p.tgClient.SendMessage(chatID, page.URL); err != nil {
@@ -117,6 +112,27 @@ func (p *Processor) sendCount(chatID int, userName string) (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (p *Processor) sendList(chatID int, userName string) (err error) {
+	listToMessage, err := p.storage.List(userName)
+
+	if err != nil {
+		return e.Wrap("can`t do command sendList()", err)
+	}
+
+	var message string
+
+	for _, file := range listToMessage {
+		message += file.URL + "\n"
+	}
+
+	messageToAnswer := msgList + "\n " + message
+
+	if err := p.tgClient.SendMessage(chatID, messageToAnswer); err != nil {
+		return err
+	}
 	return nil
 }
 

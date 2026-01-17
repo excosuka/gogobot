@@ -81,6 +81,14 @@ func (p *Processor) Process(event events.Event) error {
 //	return nil
 //}
 
+//func meta(event events.Event) (Meta, error) {
+//	res, ok := event.Meta.(Meta)
+//	if !ok {
+//		return Meta{}, e.Wrap("cannot extract meta from message", ErrUnknownMetaType)
+//	}
+//	return res, nil
+//}
+
 func (p *Processor) processCallbacks(chatID int, callbackData string, username string) error {
 	switch callbackData {
 	case "/pick":
@@ -96,13 +104,6 @@ func (p *Processor) processCallbacks(chatID int, callbackData string, username s
 
 }
 
-func meta(event events.Event) (Meta, error) {
-	res, ok := event.Meta.(Meta)
-	if !ok {
-		return Meta{}, e.Wrap("cannot extract meta from message", ErrUnknownMetaType)
-	}
-	return res, nil
-}
 func event(upd telegram.Update) events.Event {
 	if upd.Message != nil {
 		return events.Event{
@@ -141,19 +142,4 @@ func event(upd telegram.Update) events.Event {
 	return events.Event{
 		Type: events.Unknown,
 	}
-}
-
-func fetchType(upd telegram.Update) events.Type {
-	if upd.Message == nil {
-		return events.Unknown
-	}
-	return events.Message
-}
-
-func fetchText(upd telegram.Update) string {
-	if upd.Message == nil {
-		return ""
-
-	}
-	return upd.Message.Text
 }
