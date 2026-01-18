@@ -14,6 +14,8 @@ type Storage interface {
 	Remove(p *Page) error
 	IsExists(p *Page) (bool, error)
 	Count(userName string) (int, error)
+	List(userName string) ([]*Page, error)
+	FilterByTags(userName string, tagsToCheck []string) ([]*Page, error)
 }
 
 var ErrNoSavedPages = errors.New("no saved pages")
@@ -22,6 +24,7 @@ var ErrNoHaveStorage = errors.New("no storage available")
 type Page struct {
 	URL      string
 	UserName string
+	Tags     []string
 }
 
 func (p *Page) Hash() (string, error) {

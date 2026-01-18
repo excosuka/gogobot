@@ -6,8 +6,16 @@ type UpdatesResponse struct {
 }
 
 type Update struct {
-	ID      int              `json:"update_id"`
-	Message *IncomingMessage `json:"message"`
+	ID            int              `json:"update_id"`
+	Message       *IncomingMessage `json:"message"`
+	CallbackQuery *CallbackQuery   `json:"callback_query,omitempty"`
+}
+
+type CallbackQuery struct {
+	ID      string           `json:"id"`
+	From    From             `json:"from"`
+	Message *IncomingMessage `json:"message,omitempty"` // может быть nil для inline messages
+	Data    string           `json:"data"`              // callback_data
 }
 
 type IncomingMessage struct {
