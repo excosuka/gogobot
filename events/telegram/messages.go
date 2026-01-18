@@ -23,4 +23,5 @@ const (
 	msgAlreadyExists  = "You have already have this page in your list"
 	msgCount          = "You have this count of pages: "
 	msgList           = "You already saved these pages!!!"
+	msgQuery          = "Filtered pages!!!"
 )

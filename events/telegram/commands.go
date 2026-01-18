@@ -12,24 +12,30 @@ import (
 )
 
 const (
-	HelpCmd  = "/help"
-	StartCmd = "/start"
-	CountCmd = "/count"
-	PickMode = "/pick"
-	PeekMode = "/peek"
-	MenuMode = "/menu"
-	ListCmd  = "/list"
+	HelpCmd   = "/help"
+	StartCmd  = "/start"
+	CountCmd  = "/count"
+	PickMode  = "/pick"
+	PeekMode  = "/peek"
+	MenuMode  = "/menu"
+	ListCmd   = "/list"
+	SearchCmd = "/search"
 )
 
 func (p *Processor) doCmd(text string, chatID int, username string) error {
 	text = strings.TrimSpace(text)
+	parts := strings.Fields(text)
+	cmd := parts[0]
 
-	log.Printf("got new command: %s from %s", text, username)
-	if isAddCmd(text) {
-		return p.savePage(chatID, text, username)
+	tags := normalizeTags(parts)
+
+	log.Printf("got new command: %s from %s with tags: %s", text, username, tags)
+
+	if isAddCmd(cmd) {
+		return p.savePage(chatID, text, username, tags)
 	}
 
-	switch text {
+	switch cmd {
 	case PickMode:
 		return p.sendRandom(chatID, username, PickMode)
 	case PeekMode:
@@ -42,6 +48,8 @@ func (p *Processor) doCmd(text string, chatID int, username string) error {
 		return p.sendCount(chatID, username)
 	case ListCmd:
 		return p.sendList(chatID, username)
+	case SearchCmd:
+		return p.sendFilteredByTag(chatID, username, tags)
 	case MenuMode:
 		return p.sendMenu(chatID, username)
 	default:
@@ -49,12 +57,13 @@ func (p *Processor) doCmd(text string, chatID int, username string) error {
 	}
 }
 
-func (p *Processor) savePage(chatID int, pageURL string, username string) (err error) {
+func (p *Processor) savePage(chatID int, pageURL string, username string, tags []string) (err error) {
 	defer func() { err = e.WrapIfErr("can`t do command savePage()", err) }()
 
 	page := &storage.Page{
 		URL:      pageURL,
 		UserName: username,
+		Tags:     tags,
 	}
 
 	isExists, err := p.storage.IsExists(page)
@@ -136,6 +145,26 @@ func (p *Processor) sendList(chatID int, userName string) (err error) {
 	return nil
 }
 
+func (p *Processor) sendFilteredByTag(chatID int, userName string, tags []string) error {
+	filteredPages, err := p.storage.FilterByTags(userName, tags)
+	if err != nil {
+		return e.Wrap("can`t do command sendFilteredByTag()", err)
+	}
+	//fmt.Printf("[LOGS] getfiltered pages: %s \n", filteredPages)
+	//fmt.Printf("[LOGS] tags to filter pages: %s \n", tags)
+	var message string
+	for _, page := range filteredPages {
+		message += page.URL + "\n"
+	}
+	messageToAnswer := msgQuery + "\n " + message
+
+	if err := p.tgClient.SendMessage(chatID, messageToAnswer); err != nil {
+		return err
+	}
+	return nil
+
+}
+
 func (p *Processor) sendMenu(chatID int, username string) error {
 	keyboard := keyboards.BuildMainMenuKeyboard()
 
@@ -159,4 +188,25 @@ func isURL(text string) bool {
 	u, err := url.Parse(text)
 
 	return err == nil && u.Host != ""
+}
+
+func normalizeTags(parts []string) []string {
+	tags := make([]string, 0)
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		if strings.HasPrefix(part, "#") {
+			tag := strings.TrimPrefix(part, "#")
+			tag = strings.ToLower(tag)
+
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
+	return tags
 }

@@ -184,15 +184,34 @@ func (s Storage) List(userName string) ([]*storage.Page, error) {
 
 }
 
-//func (s Storage) FilterBy(userName string, query string) ([]*storage.Page, error) {
-//	pages := s.List(userName)
-//	filteredPages := make([]*storage.Page, 0, len(pages))
-//
-//	for _, page := range pages {
-//		urlFromPage := page.URL
-//
-//	}
-//}
+func (s Storage) FilterByTags(userName string, tagsToCheck []string) ([]*storage.Page, error) {
+	pages, err := s.List(userName)
+	//fmt.Printf("[LOGS] pages to check %s \n", pages)
+	//fmt.Printf("[LOGS] tags to check %s \n", tagsToCheck)
+	if err != nil {
+		return nil, e.Wrap("can't get list of files", err)
+	}
+
+	filteredPages := make([]*storage.Page, 0, len(pages))
+
+	for _, page := range pages {
+		tagsFromPage := page.Tags
+		flag := false
+		for _, tag := range tagsFromPage {
+			if flag == false {
+				for _, tagToCheck := range tagsToCheck {
+					if tagToCheck == tag && flag == false {
+						filteredPages = append(filteredPages, page)
+						flag = true
+					}
+
+				}
+			}
+
+		}
+	}
+	return filteredPages, nil
+}
 
 func fileName(p *storage.Page) (string, error) {
 	return p.Hash()
