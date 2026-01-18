@@ -5,21 +5,21 @@ type ButtonCommand struct {
 	CallbackData string `json:"callback_data"`
 }
 
-var Pick ButtonCommand = ButtonCommand{
+var Pick = ButtonCommand{
 	Text:         "Pick the article (with delete)",
 	CallbackData: "/pick",
 }
-var Peek ButtonCommand = ButtonCommand{
+var Peek = ButtonCommand{
 	Text:         "Peek the article (with no delete)",
 	CallbackData: "/peek",
 }
 
-var Help ButtonCommand = ButtonCommand{
+var Help = ButtonCommand{
 	Text:         "Help",
 	CallbackData: "/help",
 }
 
-var Count ButtonCommand = ButtonCommand{
+var Count = ButtonCommand{
 	Text:         "Count your articles in storage",
 	CallbackData: "/count",
 }

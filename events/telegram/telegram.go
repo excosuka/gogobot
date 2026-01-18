@@ -5,14 +5,16 @@ import (
 	"gogobot/clients/telegram"
 	"gogobot/events"
 	"gogobot/events/telegram/types"
+	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
 	"gogobot/storage"
 )
 
 type Processor struct {
-	tgClient *telegram.Client
-	offset   int
-	storage  storage.Storage
+	tgClient     *telegram.Client
+	offset       int
+	storage      storage.Storage
+	stateStorage stateStorage.StateStorage
 }
 
 type Meta struct {
@@ -58,6 +60,7 @@ func (p *Processor) Process(event events.Event) error {
 	case events.Message:
 		payload := event.Payload.(types.MessagePayload)
 		meta := event.Meta.(Meta)
+
 		return p.doCmd(payload.Text, meta.ChatID, meta.Username)
 	case events.Callback:
 		payload := event.Payload.(types.CallbackPayload)
@@ -68,26 +71,6 @@ func (p *Processor) Process(event events.Event) error {
 
 	}
 }
-
-//func (p *Processor) processMessage(event events.Event) error {
-//	metaFromEvent, err := meta(event)
-//	if err != nil {
-//		return e.Wrap("cant process message", err)
-//	}
-//
-//	if err := p.doCmd(event.Text, metaFromEvent.ChatID, metaFromEvent.Username); err != nil {
-//		return e.Wrap("cant process message", err)
-//	}
-//	return nil
-//}
-
-//func meta(event events.Event) (Meta, error) {
-//	res, ok := event.Meta.(Meta)
-//	if !ok {
-//		return Meta{}, e.Wrap("cannot extract meta from message", ErrUnknownMetaType)
-//	}
-//	return res, nil
-//}
 
 func (p *Processor) processCallbacks(chatID int, callbackData string, username string) error {
 	switch callbackData {

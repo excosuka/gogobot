@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"errors"
+	"fmt"
 	keyboards "gogobot/events/telegram/keyboards"
 	"gogobot/lib/e"
 	"gogobot/storage"
@@ -91,6 +92,7 @@ func (p *Processor) sendRandom(chatID int, username string, mode string) (err er
 	defer func() { err = e.WrapIfErr("can`t do command sendRandom()", err) }()
 
 	page, err := p.storage.PickRandom(username, mode)
+	var messageToAnswer string
 
 	if errors.Is(err, storage.ErrNoSavedPages) {
 		return p.tgClient.SendMessage(chatID, msgNoSavedPages)
@@ -100,7 +102,14 @@ func (p *Processor) sendRandom(chatID int, username string, mode string) (err er
 		return err
 	}
 
-	if err := p.tgClient.SendMessage(chatID, page.URL); err != nil {
+	switch mode {
+	case PickMode:
+		messageToAnswer = page.URL + "\n(URL was deleted from storage)"
+	case PeekMode:
+		messageToAnswer = page.URL + "\n(URL wasn`t deleted from storage)"
+	}
+
+	if err := p.tgClient.SendMessage(chatID, messageToAnswer); err != nil {
 		return err
 	}
 
@@ -131,10 +140,19 @@ func (p *Processor) sendList(chatID int, userName string) (err error) {
 		return e.Wrap("can`t do command sendList()", err)
 	}
 
+	if len(listToMessage) == 0 {
+		return p.tgClient.SendMessage(chatID, msgNoSavedPages)
+	}
+
 	var message string
 
-	for _, file := range listToMessage {
-		message += file.URL + "\n"
+	for i, file := range listToMessage {
+		counter := strconv.Itoa(i + 1)
+		if len(file.Tags) > 0 {
+			message += fmt.Sprintf("Page %s: %s With Tags: %s \n", counter, file.URL, normalizeTags(file.Tags))
+		} else {
+			message += fmt.Sprintf("Page %s: %s \n", counter, file.URL)
+		}
 	}
 
 	messageToAnswer := msgList + "\n " + message
@@ -146,15 +164,25 @@ func (p *Processor) sendList(chatID int, userName string) (err error) {
 }
 
 func (p *Processor) sendFilteredByTag(chatID int, userName string, tags []string) error {
+
+	if len(tags) == 0 {
+		return p.tgClient.SendMessage(chatID, msgEmptyHashTags)
+	}
+
 	filteredPages, err := p.storage.FilterByTags(userName, tags)
 	if err != nil {
 		return e.Wrap("can`t do command sendFilteredByTag()", err)
 	}
+
+	if len(filteredPages) == 0 {
+		return p.tgClient.SendMessage(chatID, msgEmptyFilteredPages)
+	}
 	//fmt.Printf("[LOGS] getfiltered pages: %s \n", filteredPages)
 	//fmt.Printf("[LOGS] tags to filter pages: %s \n", tags)
+
 	var message string
-	for _, page := range filteredPages {
-		message += page.URL + "\n"
+	for i, page := range filteredPages {
+		message += strconv.Itoa(i) + page.URL + "\n"
 	}
 	messageToAnswer := msgQuery + "\n " + message
 
