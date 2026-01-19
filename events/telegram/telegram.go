@@ -14,7 +14,7 @@ type Processor struct {
 	tgClient     *telegram.Client
 	offset       int
 	storage      storage.Storage
-	stateStorage stateStorage.StateStorage
+	stateStorage *stateStorage.StateStorage
 }
 
 type Meta struct {
@@ -25,12 +25,14 @@ type Meta struct {
 var (
 	ErrUnknownEventType = errors.New("unknown event type")
 	ErrUnknownMetaType  = errors.New("unknown meta type")
+	ErrUnknownState     = errors.New("unknown state")
 )
 
-func New(client *telegram.Client, storage storage.Storage) *Processor {
+func New(client *telegram.Client, storage storage.Storage, stateStorage *stateStorage.StateStorage) *Processor {
 	return &Processor{
-		tgClient: client,
-		storage:  storage,
+		tgClient:     client,
+		storage:      storage,
+		stateStorage: stateStorage,
 	}
 }
 
@@ -61,10 +63,26 @@ func (p *Processor) Process(event events.Event) error {
 		payload := event.Payload.(types.MessagePayload)
 		meta := event.Meta.(Meta)
 
-		return p.doCmd(payload.Text, meta.ChatID, meta.Username)
+		session, err := p.stateStorage.Get(meta.ChatID)
+		if session == nil {
+			session = &types.UserSession{
+				ChatId:    meta.ChatID,
+				Username:  meta.Username,
+				UserState: types.StateIdle,
+			}
+		}
+
+		err = p.handleMessage(session, payload.Text)
+
+		if err != nil {
+			return e.Wrap("cannot process message", err)
+		}
+
+		return p.stateStorage.Save(session)
 	case events.Callback:
 		payload := event.Payload.(types.CallbackPayload)
 		meta := event.Meta.(Meta)
+
 		return p.processCallbacks(meta.ChatID, payload.Data, meta.Username)
 	default:
 		return e.Wrap("cannot process message", ErrUnknownEventType)

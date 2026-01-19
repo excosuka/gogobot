@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	keyboards "gogobot/events/telegram/keyboards"
+	"gogobot/events/telegram/types"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"log"
@@ -23,39 +24,109 @@ const (
 	SearchCmd = "/search"
 )
 
-func (p *Processor) doCmd(text string, chatID int, username string) error {
-	text = strings.TrimSpace(text)
-	parts := strings.Fields(text)
-	cmd := parts[0]
+//
+//func (p *Processor) doCmd(text string, chatID int, username string) error {
+//	text = strings.TrimSpace(text)
+//	parts := strings.Fields(text)
+//	cmd := parts[0]
+//
+//	tags := normalizeTags(parts)
+//
+//	log.Printf("got new command: %s from %s with tags: %s", text, username, tags)
+//
+//	if isAddCmd(cmd) {
+//		return p.savePage(chatID, text, username, tags)
+//	}
+//
+//	switch cmd {
+//	case PickMode:
+//		return p.sendRandom(chatID, username, PickMode)
+//	case PeekMode:
+//		return p.sendRandom(chatID, username, PeekMode)
+//	case HelpCmd:
+//		return p.sendHelp(chatID)
+//	case StartCmd:
+//		return p.sendHello(chatID)
+//	case CountCmd:
+//		return p.sendCount(chatID, username)
+//	case ListCmd:
+//		return p.sendList(chatID, username)
+//	case SearchCmd:
+//		return p.sendFilteredByTag(chatID, username, tags)
+//	case MenuMode:
+//		return p.sendMenu(chatID, username)
+//	default:
+//		return p.tgClient.SendMessage(chatID, msgUnknownCommand)
+//	}
+//}
 
-	tags := normalizeTags(parts)
+func (p *Processor) handleMessage(s *types.UserSession, text string) error {
+	switch s.UserState {
+	case types.StateIdle:
+		return p.handleIdle(s, text)
 
-	log.Printf("got new command: %s from %s with tags: %s", text, username, tags)
+	case types.StateWaitingForTags:
+		return p.handleWaitingForTags(s, text)
 
-	if isAddCmd(cmd) {
-		return p.savePage(chatID, text, username, tags)
-	}
-
-	switch cmd {
-	case PickMode:
-		return p.sendRandom(chatID, username, PickMode)
-	case PeekMode:
-		return p.sendRandom(chatID, username, PeekMode)
-	case HelpCmd:
-		return p.sendHelp(chatID)
-	case StartCmd:
-		return p.sendHello(chatID)
-	case CountCmd:
-		return p.sendCount(chatID, username)
-	case ListCmd:
-		return p.sendList(chatID, username)
-	case SearchCmd:
-		return p.sendFilteredByTag(chatID, username, tags)
-	case MenuMode:
-		return p.sendMenu(chatID, username)
 	default:
-		return p.tgClient.SendMessage(chatID, msgUnknownCommand)
+		return ErrUnknownState
 	}
+}
+
+func (p *Processor) handleIdle(s *types.UserSession, text string) error {
+	text = strings.TrimSpace(text)
+
+	log.Printf("got new command: %s from %s ", text, s.Username)
+
+	if isAddCmd(text) {
+		s.TempURL = text
+		s.UserState = types.StateWaitingForTags
+		return p.tgClient.SendMessage(s.ChatId, "Waiting for hashtags")
+	}
+
+	switch text {
+	case PickMode:
+		return p.sendRandom(s.ChatId, s.Username, PickMode)
+	case PeekMode:
+		return p.sendRandom(s.ChatId, s.Username, PeekMode)
+	case HelpCmd:
+		return p.sendHelp(s.ChatId)
+	case StartCmd:
+		return p.sendHello(s.ChatId)
+	case CountCmd:
+		return p.sendCount(s.ChatId, s.Username)
+	case ListCmd:
+		return p.sendList(s.ChatId, s.Username)
+	//case SearchCmd:
+	//	return p.sendFilteredByTag(s.ChatId, s.Username, tags)
+	case MenuMode:
+		return p.sendMenu(s.ChatId, s.Username)
+	default:
+		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
+
+	}
+}
+
+func (p *Processor) handleWaitingForTags(s *types.UserSession, text string) error {
+	tags := normalizeTags(strings.Fields(text))
+
+	if len(tags) == 0 {
+		return p.tgClient.SendMessage(s.ChatId, msgEmptyHashTags)
+	}
+
+	err := p.storage.Save(&storage.Page{
+		URL:      s.TempURL,
+		Tags:     tags,
+		UserName: s.Username,
+	})
+	if err != nil {
+		return e.Wrap("Can not preprocess tags", err)
+	}
+	s.UserState = types.StateIdle
+	s.TempURL = ""
+
+	return p.tgClient.SendMessage(s.ChatId, msgSaved)
+
 }
 
 func (p *Processor) savePage(chatID int, pageURL string, username string, tags []string) (err error) {

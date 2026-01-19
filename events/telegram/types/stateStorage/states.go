@@ -9,7 +9,7 @@ var ErrSessionNotFound = errors.New("session not found")
 
 type StateStorage map[int]*types.UserSession
 
-func (s StateStorage) New() *StateStorage {
+func New() *StateStorage {
 	storage := make(StateStorage)
 	return &storage
 }

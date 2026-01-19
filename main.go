@@ -5,6 +5,7 @@ import (
 	tgClient "gogobot/clients/telegram"
 	event_consumer "gogobot/consumer/event-consumer"
 	"gogobot/events/telegram"
+	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/storage/files"
 
 	"log"
@@ -19,9 +20,11 @@ const (
 )
 
 func main() {
+
 	eventsProcessor := telegram.New(
 		tgClient.New(tgBotHost, mustToken()),
-		files.NewStorage(storagePath))
+		files.NewStorage(storagePath),
+		stateStorage.New())
 
 	log.Println("Starting telegram bot")
 
