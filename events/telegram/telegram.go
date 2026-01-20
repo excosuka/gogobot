@@ -83,25 +83,40 @@ func (p *Processor) Process(event events.Event) error {
 		payload := event.Payload.(types.CallbackPayload)
 		meta := event.Meta.(Meta)
 
-		return p.processCallbacks(meta.ChatID, payload.Data, meta.Username)
+		session, err := p.stateStorage.Get(meta.ChatID)
+
+		if session == nil {
+			session = &types.UserSession{
+				ChatId:    meta.ChatID,
+				Username:  meta.Username,
+				UserState: types.StateIdle,
+			}
+
+		}
+
+		if err != nil {
+			return e.Wrap("cannot process callback", err)
+		}
+
+		return p.processCallbacks(session, payload.Data)
 	default:
 		return e.Wrap("cannot process message", ErrUnknownEventType)
 
 	}
 }
 
-func (p *Processor) processCallbacks(chatID int, callbackData string, username string) error {
+func (p *Processor) processCallbacks(s *types.UserSession, callbackData string) error {
 	switch callbackData {
 	case "/pick":
-		return p.sendRandom(chatID, username, PickMode)
+		return p.sendRandom(s, PickMode)
 	case "/peek":
-		return p.sendRandom(chatID, username, PeekMode)
+		return p.sendRandom(s, PeekMode)
 	case "/count":
-		return p.sendCount(chatID, username)
+		return p.sendCount(s)
 	case "/help":
-		return p.sendHelp(chatID)
+		return p.sendHelp(s)
 	}
-	return p.tgClient.SendMessage(chatID, msgUnknownCommand)
+	return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
 
 }
 
