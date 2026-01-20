@@ -8,9 +8,9 @@ type StateStorage interface {
 type UserState string
 
 const (
-	StateIdle           UserState = "idle"
-	StateWaitingForUrl  UserState = "waiting_for_url"
-	StateWaitingForTags UserState = "waiting_for_tags"
+	StateIdle                    UserState = "idle"
+	StateWaitingForTags          UserState = "waiting_for_tags"
+	StateWaitingForTagsForSearch UserState = "waiting_for_tags_for_search"
 )
 
 type UserSession struct {

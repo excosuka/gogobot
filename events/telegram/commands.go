@@ -68,6 +68,9 @@ func (p *Processor) handleMessage(s *types.UserSession, text string) error {
 	case types.StateWaitingForTags:
 		return p.handleWaitingForTags(s, text)
 
+	case types.StateWaitingForTagsForSearch:
+		return p.handleWaitingForTagsForSearch(s, text)
+
 	default:
 		return ErrUnknownState
 	}
@@ -97,14 +100,58 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 		return p.sendCount(s.ChatId, s.Username)
 	case ListCmd:
 		return p.sendList(s.ChatId, s.Username)
-	//case SearchCmd:
-	//	return p.sendFilteredByTag(s.ChatId, s.Username, tags)
+	case SearchCmd:
+		s.UserState = types.StateWaitingForTagsForSearch
+		return p.tgClient.SendMessage(s.ChatId, "Waiting tags for search")
+
 	case MenuMode:
 		return p.sendMenu(s.ChatId, s.Username)
 	default:
 		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
 
 	}
+}
+
+func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text string) error {
+
+	text = strings.TrimSpace(text)
+
+	if strings.HasPrefix(text, "/") {
+		s.UserState = types.StateIdle
+		return p.handleIdle(s, text)
+	}
+
+	tags := normalizeTags(strings.Fields(text))
+
+	if len(tags) == 0 {
+		return p.tgClient.SendMessage(s.ChatId, msgEmptyHashTags)
+	}
+
+	filteredPages, err := p.storage.FilterByTags(s.Username, tags)
+	if err != nil {
+		return e.Wrap("can`t do command sendFilteredByTag()", err)
+	}
+
+	if len(filteredPages) == 0 {
+		return p.tgClient.SendMessage(s.ChatId, msgEmptyFilteredPages)
+	}
+	//fmt.Printf("[LOGS] getfiltered pages: %s \n", filteredPages)
+	//fmt.Printf("[LOGS] tags to filter pages: %s \n", tags)
+
+	var message string
+	for i, page := range filteredPages {
+		message += strconv.Itoa(i) + page.URL + "\n"
+	}
+	messageToAnswer := msgQuery + "\n " + message
+
+	if err := p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {
+		return err
+	}
+
+	s.UserState = types.StateIdle
+
+	return nil
+
 }
 
 func (p *Processor) handleWaitingForTags(s *types.UserSession, text string) error {
@@ -233,37 +280,6 @@ func (p *Processor) sendList(chatID int, userName string) (err error) {
 	}
 	return nil
 }
-
-func (p *Processor) sendFilteredByTag(chatID int, userName string, tags []string) error {
-
-	if len(tags) == 0 {
-		return p.tgClient.SendMessage(chatID, msgEmptyHashTags)
-	}
-
-	filteredPages, err := p.storage.FilterByTags(userName, tags)
-	if err != nil {
-		return e.Wrap("can`t do command sendFilteredByTag()", err)
-	}
-
-	if len(filteredPages) == 0 {
-		return p.tgClient.SendMessage(chatID, msgEmptyFilteredPages)
-	}
-	//fmt.Printf("[LOGS] getfiltered pages: %s \n", filteredPages)
-	//fmt.Printf("[LOGS] tags to filter pages: %s \n", tags)
-
-	var message string
-	for i, page := range filteredPages {
-		message += strconv.Itoa(i) + page.URL + "\n"
-	}
-	messageToAnswer := msgQuery + "\n " + message
-
-	if err := p.tgClient.SendMessage(chatID, messageToAnswer); err != nil {
-		return err
-	}
-	return nil
-
-}
-
 func (p *Processor) sendMenu(chatID int, username string) error {
 	keyboard := keyboards.BuildMainMenuKeyboard()
 
