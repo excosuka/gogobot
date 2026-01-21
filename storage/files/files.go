@@ -172,13 +172,11 @@ func (s Storage) List(userName string) ([]*storage.Page, error) {
 		return nil, e.Wrap("can't read dir", err)
 	}
 	for _, file := range files {
-
 		fileToList, err := s.decodePage(filepath.Join(dir, file.Name()))
-		pages = append(pages, fileToList)
 		if err != nil {
 			return nil, e.Wrap("can't decode file", err)
 		}
-
+		pages = append(pages, fileToList)
 	}
 	return pages, nil
 
