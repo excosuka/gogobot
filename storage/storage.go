@@ -19,6 +19,7 @@ type Storage interface {
 }
 
 var ErrNoSavedPages = errors.New("no saved pages")
+var ErrPageExists = errors.New("page exists")
 var ErrNoHaveStorage = errors.New("no storage available")
 
 type Page struct {

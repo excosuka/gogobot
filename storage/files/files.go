@@ -16,6 +16,8 @@ type Storage struct {
 	basePath string
 }
 
+var _ storage.Storage = (*Storage)(nil)
+
 const defaultPerm = 0774
 
 func NewStorage(basePath string) Storage {
@@ -78,14 +80,17 @@ func (s Storage) PickRandom(userName string, mode string) (page *storage.Page, e
 	case telegram.PickMode:
 
 		filePath := filepath.Join(path, file.Name())
+		page, err := s.decodePage(filePath)
 
-		defer func() {
-			if removeErr := os.Remove(filePath); removeErr != nil {
-				err = e.WrapIfErr("failed to remove file", removeErr)
-			}
-		}()
+		if err != nil {
+			return nil, e.Wrap("failed decode page", err)
+		}
 
-		return s.decodePage(filePath)
+		if err := os.Remove(filePath); err != nil {
+			return nil, e.Wrap("failed remove file", err)
+		}
+
+		return page, nil
 	case telegram.PeekMode:
 		return s.decodePage(filepath.Join(path, file.Name()))
 
@@ -171,6 +176,11 @@ func (s Storage) List(userName string) ([]*storage.Page, error) {
 	if err != nil {
 		return nil, e.Wrap("can't read dir", err)
 	}
+
+	if len(files) == 0 {
+		return nil, nil
+	}
+
 	for _, file := range files {
 		fileToList, err := s.decodePage(filepath.Join(dir, file.Name()))
 		if err != nil {
@@ -193,24 +203,26 @@ func (s Storage) FilterByTags(userName string, tagsToCheck []string) ([]*storage
 	filteredPages := make([]*storage.Page, 0, len(pages))
 
 	for _, page := range pages {
-		tagsFromPage := page.Tags
-		flag := false
-		for _, tag := range tagsFromPage {
-			if flag == false {
-				for _, tagToCheck := range tagsToCheck {
-					if tagToCheck == tag && flag == false {
-						filteredPages = append(filteredPages, page)
-						flag = true
-					}
-
-				}
+		for _, tag := range page.Tags {
+			if contains(tagsToCheck, tag) {
+				filteredPages = append(filteredPages, page)
+				break
 			}
-
 		}
 	}
+
 	return filteredPages, nil
 }
 
 func fileName(p *storage.Page) (string, error) {
 	return p.Hash()
+}
+
+func contains(list []string, v string) bool {
+	for _, item := range list {
+		if item == v {
+			return true
+		}
+	}
+	return false
 }
