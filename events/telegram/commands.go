@@ -5,13 +5,20 @@ import (
 	keyboards "gogobot/events/telegram/keyboards"
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/botCommands"
+	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"strconv"
 )
 
 func (p *Processor) handleMessage(s *types.UserSession, text string) error {
+	if text == "/cancel" {
+		stateStorage.ResetSession(s)
+		return p.tgClient.SendMessage(s.ChatId, msgCanceled)
+	}
+
 	switch s.UserState {
+
 	case types.StateIdle:
 		return p.handleIdle(s, text)
 
@@ -29,25 +36,36 @@ func (p *Processor) handleMessage(s *types.UserSession, text string) error {
 func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 	defer func() { err = e.WrapIfErr("can`t do command sendRandom()", err) }()
 
-	page, err := p.pageService.Pick(s.Username)
 	var messageToAnswer string
-
-	if errors.Is(err, storage.ErrNoSavedPages) {
-		return p.tgClient.SendMessage(s.ChatId, msgNoSavedPages)
-	}
-
-	if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
-		return err
-	}
 
 	switch mode {
 	case botCommands.PickMode:
-		messageToAnswer = page.URL + "\n(URL was deleted from storage)"
-	case botCommands.PeekMode:
-		messageToAnswer = page.URL + "\n(URL wasn`t deleted from storage)"
-	}
+		page, err := p.pageService.Pick(s.Username)
+		if errors.Is(err, storage.ErrNoSavedPages) {
+			return p.tgClient.SendMessage(s.ChatId, msgNoSavedPages)
+		}
 
-	if err := p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {
+		if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
+			return err
+		}
+
+		messageToAnswer = page.URL + "\n(URL was deleted from storage)"
+
+	case botCommands.PeekMode:
+
+		page, err := p.pageService.Peek(s.Username)
+		if errors.Is(err, storage.ErrNoSavedPages) {
+			return p.tgClient.SendMessage(s.ChatId, msgNoSavedPages)
+		}
+
+		if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
+			return err
+		}
+
+		messageToAnswer = page.URL + "\n(URL wasn`t deleted from storage)"
+
+	}
+	if err = p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {
 		return err
 	}
 

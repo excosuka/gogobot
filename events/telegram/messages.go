@@ -30,4 +30,5 @@ const (
 	msgEmptyHashTags      = "You didn't specify hashtags!"
 	msgEmptyFilteredPages = "You didn`t have pages with current hashtags!"
 	msgToSpecifyHashTags  = "Specify hashtags to search by thems!"
+	msgCanceled           = "You have been canceled last command."
 )

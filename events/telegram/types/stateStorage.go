@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type StateStorage interface {
 	Get(chatID int) (*UserSession, error)
 	Save(session *UserSession) error
@@ -14,8 +16,9 @@ const (
 )
 
 type UserSession struct {
-	ChatId    int
-	Username  string
-	UserState UserState
-	TempURL   string
+	ChatId       int
+	Username     string
+	UserState    UserState
+	TempURL      string
+	LastActivity time.Time
 }

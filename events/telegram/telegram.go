@@ -8,14 +8,19 @@ import (
 	"gogobot/events/telegram/types/botCommands"
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
-	"gogobot/pageService"
+	"gogobot/storage/pageService"
+	"gogobot/storage/searchService"
+	"time"
 )
 
+const sessionTTL = 5 * time.Minute
+
 type Processor struct {
-	tgClient     *telegram.Client
-	offset       int
-	pageService  pageService.Service
-	stateStorage *stateStorage.StateStorage
+	tgClient      *telegram.Client
+	offset        int
+	pageService   pageService.Service
+	stateStorage  *stateStorage.StateStorage
+	searchService searchService.Service
 }
 
 type Meta struct {
@@ -29,11 +34,12 @@ var (
 	ErrUnknownState     = errors.New("unknown state")
 )
 
-func New(client *telegram.Client, pageService pageService.Service, stateStorage *stateStorage.StateStorage) *Processor {
+func New(client *telegram.Client, pageService pageService.Service, stateStorage *stateStorage.StateStorage, searchService searchService.Service) *Processor {
 	return &Processor{
-		tgClient:     client,
-		pageService:  pageService,
-		stateStorage: stateStorage,
+		tgClient:      client,
+		pageService:   pageService,
+		stateStorage:  stateStorage,
+		searchService: searchService,
 	}
 }
 
@@ -67,11 +73,14 @@ func (p *Processor) Process(event events.Event) error {
 		session, err := p.stateStorage.Get(meta.ChatID)
 		if session == nil {
 			session = &types.UserSession{
-				ChatId:    meta.ChatID,
-				Username:  meta.Username,
-				UserState: types.StateIdle,
+				ChatId:       meta.ChatID,
+				Username:     meta.Username,
+				UserState:    types.StateIdle,
+				LastActivity: time.Now(),
 			}
 		}
+
+		p.checkSessionTimeout(session)
 
 		err = p.handleMessage(session, payload.Text)
 
@@ -88,12 +97,15 @@ func (p *Processor) Process(event events.Event) error {
 
 		if session == nil {
 			session = &types.UserSession{
-				ChatId:    meta.ChatID,
-				Username:  meta.Username,
-				UserState: types.StateIdle,
+				ChatId:       meta.ChatID,
+				Username:     meta.Username,
+				UserState:    types.StateIdle,
+				LastActivity: time.Now(),
 			}
 
 		}
+
+		p.checkSessionTimeout(session)
 
 		if err != nil {
 			return e.Wrap("cannot process callback", err)
@@ -159,4 +171,12 @@ func event(upd telegram.Update) events.Event {
 	return events.Event{
 		Type: events.Unknown,
 	}
+}
+
+func (p *Processor) checkSessionTimeout(s *types.UserSession) {
+	if time.Since(s.LastActivity) > sessionTTL {
+		stateStorage.ResetSession(s)
+		_ = p.tgClient.SendMessage(s.ChatId, "⌛ Диалог был сброшен из-за неактивности")
+	}
+	s.LastActivity = time.Now()
 }

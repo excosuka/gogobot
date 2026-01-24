@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"gogobot/events/telegram"
+	"gogobot/events/telegram/types/botCommands"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"math/rand"
@@ -77,7 +77,7 @@ func (s Storage) PickRandom(userName string, mode string) (page *storage.Page, e
 	file := files[n]
 
 	switch mode {
-	case telegram.PickMode:
+	case botCommands.PickMode:
 
 		filePath := filepath.Join(path, file.Name())
 		page, err := s.decodePage(filePath)
@@ -91,7 +91,7 @@ func (s Storage) PickRandom(userName string, mode string) (page *storage.Page, e
 		}
 
 		return page, nil
-	case telegram.PeekMode:
+	case botCommands.PeekMode:
 		return s.decodePage(filepath.Join(path, file.Name()))
 
 	}

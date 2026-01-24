@@ -3,6 +3,7 @@ package telegram
 import (
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/botCommands"
+	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"log"
@@ -21,7 +22,7 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 			UserName: s.Username,
 		}
 
-		isExists, err := p.storage.IsExists(page)
+		isExists, err := p.pageService.Exists(page)
 		if err != nil {
 			return err
 		}
@@ -66,7 +67,7 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 	text = strings.TrimSpace(text)
 
 	if strings.HasPrefix(text, "/") {
-		s.UserState = types.StateIdle
+
 		return p.handleIdle(s, text)
 	}
 
@@ -76,16 +77,16 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 		return p.tgClient.SendMessage(s.ChatId, msgEmptyHashTags)
 	}
 
-	filteredPages, err := p.storage.FilterByTags(s.Username, tags)
+	filteredPages, err := p.searchService.Search(s.Username, tags)
 	if err != nil {
 		return e.Wrap("can`t do command sendFilteredByTag()", err)
 	}
 
 	if len(filteredPages) == 0 {
+		stateStorage.ResetSession(s)
 		return p.tgClient.SendMessage(s.ChatId, msgEmptyFilteredPages)
+
 	}
-	//fmt.Printf("[LOGS] getfiltered pages: %s \n", filteredPages)
-	//fmt.Printf("[LOGS] tags to filter pages: %s \n", tags)
 
 	var message string
 	for i, page := range filteredPages {
@@ -93,11 +94,11 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 	}
 	messageToAnswer := msgQuery + "\n " + message
 
+	stateStorage.ResetSession(s)
+
 	if err := p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {
 		return err
 	}
-
-	s.UserState = types.StateIdle
 
 	return nil
 
@@ -122,8 +123,7 @@ func (p *Processor) handleWaitingForTags(s *types.UserSession, text string) (err
 		return err
 	}
 
-	s.UserState = types.StateIdle
-	s.TempURL = ""
+	stateStorage.ResetSession(s)
 
 	if err = p.tgClient.SendMessage(s.ChatId, msgSaved); err != nil {
 		return err
