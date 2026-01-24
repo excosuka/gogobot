@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"gogobot/events/telegram/types"
+	"gogobot/events/telegram/types/botCommands"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"log"
@@ -36,23 +37,23 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 	}
 
 	switch text {
-	case PickMode:
-		return p.sendRandom(s, PickMode)
-	case PeekMode:
-		return p.sendRandom(s, PeekMode)
-	case HelpCmd:
+	case botCommands.PickMode:
+		return p.sendRandom(s, botCommands.PickMode)
+	case botCommands.PeekMode:
+		return p.sendRandom(s, botCommands.PeekMode)
+	case botCommands.HelpCmd:
 		return p.sendHelp(s)
-	case StartCmd:
+	case botCommands.StartCmd:
 		return p.sendHello(s)
-	case CountCmd:
+	case botCommands.CountCmd:
 		return p.sendCount(s)
-	case ListCmd:
+	case botCommands.ListCmd:
 		return p.sendList(s)
-	case SearchCmd:
+	case botCommands.SearchCmd:
 		s.UserState = types.StateWaitingForTagsForSearch
 		return p.tgClient.SendMessage(s.ChatId, "Waiting tags for search")
 
-	case MenuMode:
+	case botCommands.MenuMode:
 		return p.sendMenu(s)
 	default:
 		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
@@ -117,7 +118,7 @@ func (p *Processor) handleWaitingForTags(s *types.UserSession, text string) (err
 		UserName: s.Username,
 	}
 
-	if err = p.storage.Save(page); err != nil {
+	if err = p.pageService.Save(page); err != nil {
 		return err
 	}
 

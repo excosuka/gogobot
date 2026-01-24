@@ -1,7 +1,7 @@
 package pageService
 
 import (
-	"gogobot/events/telegram"
+	"gogobot/events/telegram/types/botCommands"
 	"gogobot/storage"
 )
 
@@ -35,9 +35,13 @@ func (s *service) Exists(p *storage.Page) (bool, error) {
 }
 
 func (s *service) Pick(userName string) (*storage.Page, error) {
-	return s.storage.PickRandom(userName, telegram.PickMode)
+	return s.storage.PickRandom(userName, botCommands.PickMode)
 }
 
 func (s *service) Peek(userName string) (*storage.Page, error) {
-	return s.storage.PickRandom(userName, telegram.PeekMode)
+	return s.storage.PickRandom(userName, botCommands.PeekMode)
+}
+
+func (s *service) Count(userName string) (int, error) {
+	return s.storage.Count(userName)
 }

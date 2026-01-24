@@ -5,15 +5,16 @@ import (
 	"gogobot/clients/telegram"
 	"gogobot/events"
 	"gogobot/events/telegram/types"
+	"gogobot/events/telegram/types/botCommands"
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
-	"gogobot/storage"
+	"gogobot/pageService"
 )
 
 type Processor struct {
 	tgClient     *telegram.Client
 	offset       int
-	storage      storage.Storage
+	pageService  pageService.Service
 	stateStorage *stateStorage.StateStorage
 }
 
@@ -28,10 +29,10 @@ var (
 	ErrUnknownState     = errors.New("unknown state")
 )
 
-func New(client *telegram.Client, storage storage.Storage, stateStorage *stateStorage.StateStorage) *Processor {
+func New(client *telegram.Client, pageService pageService.Service, stateStorage *stateStorage.StateStorage) *Processor {
 	return &Processor{
 		tgClient:     client,
-		storage:      storage,
+		pageService:  pageService,
 		stateStorage: stateStorage,
 	}
 }
@@ -108,9 +109,9 @@ func (p *Processor) Process(event events.Event) error {
 func (p *Processor) processCallbacks(s *types.UserSession, callbackData string) error {
 	switch callbackData {
 	case "/pick":
-		return p.sendRandom(s, PickMode)
+		return p.sendRandom(s, botCommands.PickMode)
 	case "/peek":
-		return p.sendRandom(s, PeekMode)
+		return p.sendRandom(s, botCommands.PeekMode)
 	case "/count":
 		return p.sendCount(s)
 	case "/help":

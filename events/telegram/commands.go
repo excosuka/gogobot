@@ -4,20 +4,10 @@ import (
 	"errors"
 	keyboards "gogobot/events/telegram/keyboards"
 	"gogobot/events/telegram/types"
+	"gogobot/events/telegram/types/botCommands"
 	"gogobot/lib/e"
 	"gogobot/storage"
 	"strconv"
-)
-
-const (
-	HelpCmd   = "/help"
-	StartCmd  = "/start"
-	CountCmd  = "/count"
-	PickMode  = "/pick"
-	PeekMode  = "/peek"
-	MenuMode  = "/menu"
-	ListCmd   = "/list"
-	SearchCmd = "/search"
 )
 
 func (p *Processor) handleMessage(s *types.UserSession, text string) error {
@@ -39,7 +29,7 @@ func (p *Processor) handleMessage(s *types.UserSession, text string) error {
 func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 	defer func() { err = e.WrapIfErr("can`t do command sendRandom()", err) }()
 
-	page, err := p.storage.PickRandom(s.Username, mode)
+	page, err := p.pageService.Pick(s.Username)
 	var messageToAnswer string
 
 	if errors.Is(err, storage.ErrNoSavedPages) {
@@ -51,9 +41,9 @@ func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 	}
 
 	switch mode {
-	case PickMode:
+	case botCommands.PickMode:
 		messageToAnswer = page.URL + "\n(URL was deleted from storage)"
-	case PeekMode:
+	case botCommands.PeekMode:
 		messageToAnswer = page.URL + "\n(URL wasn`t deleted from storage)"
 	}
 
@@ -66,7 +56,7 @@ func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 }
 
 func (p *Processor) sendCount(s *types.UserSession) (err error) {
-	count, err := p.storage.Count(s.Username)
+	count, err := p.pageService.Count(s.Username)
 
 	if err != nil {
 		return e.Wrap("can`t do command sendCount()", err)
@@ -82,7 +72,7 @@ func (p *Processor) sendCount(s *types.UserSession) (err error) {
 }
 
 func (p *Processor) sendList(s *types.UserSession) (err error) {
-	listToMessage, err := p.storage.List(s.Username)
+	listToMessage, err := p.pageService.List(s.Username)
 
 	if err != nil {
 		return e.Wrap("can`t do command sendList()", err)

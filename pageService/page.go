@@ -8,4 +8,5 @@ type Service interface {
 	Exists(page *storage.Page) (bool, error)
 	Pick(userName string) (*storage.Page, error)
 	Peek(userName string) (*storage.Page, error)
+	Count(userName string) (int, error)
 }
