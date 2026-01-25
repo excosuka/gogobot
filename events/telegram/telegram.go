@@ -4,8 +4,8 @@ import (
 	"errors"
 	"gogobot/clients/telegram"
 	"gogobot/events"
+	"gogobot/events/telegram/callbacks"
 	"gogobot/events/telegram/types"
-	"gogobot/events/telegram/types/botCommands"
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
 	"gogobot/storage/pageService"
@@ -118,18 +118,19 @@ func (p *Processor) Process(event events.Event) error {
 	}
 }
 
-func (p *Processor) processCallbacks(s *types.UserSession, callbackData string) error {
-	switch callbackData {
-	case "/pick":
-		return p.sendRandom(s, botCommands.PickMode)
-	case "/peek":
-		return p.sendRandom(s, botCommands.PeekMode)
-	case "/count":
-		return p.sendCount(s)
-	case "/help":
-		return p.sendHelp(s)
+func (p *Processor) processCallbacks(s *types.UserSession, data string) error {
+	cb := callbacks.Parse(data)
+	switch cb.Domain {
+	case "page":
+		return p.handlePageCallbacks(s, cb)
+	case "search":
+		return p.handleSearchCallbacks(s, cb)
+	case "menu":
+		return p.handleMenuCallbacks(s, cb)
+	default:
+		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
+
 	}
-	return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
 
 }
 

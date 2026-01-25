@@ -8,6 +8,7 @@ import (
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
 	"gogobot/storage"
+	"math/rand"
 	"strconv"
 )
 
@@ -117,4 +118,34 @@ func (p *Processor) sendHelp(s *types.UserSession) error {
 
 func (p *Processor) sendHello(s *types.UserSession) error {
 	return p.tgClient.SendMessage(s.ChatId, msgHello)
+}
+
+func (p *Processor) repeatSearch(s *types.UserSession) error {
+	if len(s.LastSearchPages) == 0 {
+		return p.tgClient.SendMessage(s.ChatId, "No previous search")
+	}
+	pages, err := p.searchService.Search(s.Username, s.LastSearchTags)
+	if err != nil {
+		return err
+	}
+	s.LastSearchPages = pages
+
+	return p.tgClient.SendMessageWithKeyboard(
+		s.ChatId,
+		listPagesToMessage(pages),
+		keyboards.BuildSearchResultKeyboard(pages),
+	)
+}
+
+func (p *Processor) pickFromSearch(s *types.UserSession) error {
+	if len(s.LastSearchPages) == 0 {
+		return p.tgClient.SendMessage(s.ChatId, "No search results")
+	}
+
+	page := s.LastSearchPages[rand.Intn(len(s.LastSearchPages))]
+
+	return p.tgClient.SendMessage(
+		s.ChatId,
+		page.URL,
+	)
 }

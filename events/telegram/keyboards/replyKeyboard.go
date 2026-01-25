@@ -1,27 +1,42 @@
 package keyboards
 
+import (
+	"gogobot/storage"
+	"strconv"
+)
+
 type ButtonCommand struct {
 	Text         string `json:"text"`
 	CallbackData string `json:"callback_data"`
 }
 
 var Pick = ButtonCommand{
-	Text:         "Pick the article (with delete)",
-	CallbackData: "/pick",
+	Text:         "🎲 Pick article (delete)",
+	CallbackData: "page:pick",
 }
 var Peek = ButtonCommand{
-	Text:         "Peek the article (with no delete)",
-	CallbackData: "/peek",
+	Text:         "🎲 Pick article (keep)",
+	CallbackData: "page:peek",
 }
 
 var Help = ButtonCommand{
-	Text:         "Help",
-	CallbackData: "/help",
+	Text:         "ℹ️ Help",
+	CallbackData: "menu:help",
 }
 
 var Count = ButtonCommand{
-	Text:         "Count your articles in storage",
-	CallbackData: "/count",
+	Text:         "📊 Articles count",
+	CallbackData: "menu:count",
+}
+
+var SearchRepeat = ButtonCommand{
+	Text:         "🔁 Repeat search",
+	CallbackData: "search:repeat",
+}
+
+var SearchPick = ButtonCommand{
+	Text:         "🎯 Pick from results",
+	CallbackData: "search:pick",
 }
 
 type ReplyMenuKeyboard struct {
@@ -34,5 +49,29 @@ func BuildMainMenuKeyboard() ReplyMenuKeyboard {
 			{Pick, Peek},
 			{Help, Count},
 		},
+	}
+}
+
+func BuildSearchResultKeyboard(pages []*storage.Page) ReplyMenuKeyboard {
+	rows := make([][]ButtonCommand, 0)
+
+	for i := range pages {
+		rows = append(rows, []ButtonCommand{
+			{
+				Text:         strconv.Itoa(i),
+				CallbackData: "search:pick:" + strconv.Itoa(i),
+			},
+		})
+	}
+
+	rows = append(rows, []ButtonCommand{
+		{
+			Text:         "Cancel",
+			CallbackData: "search:cancel",
+		},
+	})
+
+	return ReplyMenuKeyboard{
+		InlineKeyboard: rows,
 	}
 }

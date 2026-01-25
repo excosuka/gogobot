@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"gogobot/events/telegram/keyboards"
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/botCommands"
 	"gogobot/events/telegram/types/stateStorage"
@@ -94,9 +95,18 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 	}
 	messageToAnswer := msgQuery + "\n " + message
 
+	s.LastSearchTags = tags
+	s.LastSearchPages = filteredPages
+
 	stateStorage.ResetSession(s)
 
-	if err := p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {
+	kb := keyboards.BuildSearchResultKeyboard(filteredPages)
+
+	if err := p.tgClient.SendMessageWithKeyboard(
+		s.ChatId,
+		messageToAnswer,
+		kb,
+	); err != nil {
 		return err
 	}
 

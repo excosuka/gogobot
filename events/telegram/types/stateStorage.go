@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"gogobot/storage"
+	"time"
+)
 
 type StateStorage interface {
 	Get(chatID int) (*UserSession, error)
@@ -21,4 +24,8 @@ type UserSession struct {
 	UserState    UserState
 	TempURL      string
 	LastActivity time.Time
+
+	LastSearchTags  []string
+	LastSearchPages []*storage.Page
+	SearchStartedAt time.Time
 }
