@@ -23,12 +23,12 @@ const (
 
 func main() {
 	storage := files.NewStorage(storagePath)
-
 	eventsProcessor := telegram.New(
 		tgClient.New(tgBotHost, mustToken()),
 		pageService.New(storage),
 		stateStorage.New(),
 		searchService.New(storage),
+		telegram.NewCallbackRouter(),
 	)
 
 	log.Println("Starting telegram bot")

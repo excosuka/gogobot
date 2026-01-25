@@ -2,10 +2,12 @@ package telegram
 
 import (
 	"fmt"
+	"gogobot/events/telegram/types"
 	"gogobot/storage"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func isAddCmd(text string) bool {
@@ -57,4 +59,11 @@ func listPagesToMessage(parts []*storage.Page) string {
 
 	return messageToAnswer
 
+}
+
+func isSearchExpired(s *types.UserSession) bool {
+	if s.SearchStartedAt.IsZero() {
+		return true
+	}
+	return time.Since(s.SearchStartedAt) > searchTTL
 }

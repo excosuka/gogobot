@@ -6,7 +6,10 @@ import (
 	"gogobot/events/telegram/types/botCommands"
 	"gogobot/events/telegram/types/stateStorage"
 	"strconv"
+	"time"
 )
+
+const searchTTL = 2 * time.Minute
 
 func (p *Processor) handlePageCallbacks(s *types.UserSession, cb callbacks.Callback) error {
 	switch cb.Action {
@@ -23,6 +26,11 @@ func (p *Processor) handlePageCallbacks(s *types.UserSession, cb callbacks.Callb
 func (p *Processor) handleSearchCallbacks(s *types.UserSession, cb callbacks.Callback) error {
 	switch cb.Action {
 	case "pick":
+		if isSearchExpired(s) {
+			stateStorage.ResetSession(s)
+			return p.tgClient.SendMessage(s.ChatId, "Search expired, please run /search again")
+		}
+
 		if s.LastSearchPages == nil {
 			return p.tgClient.SendMessage(s.ChatId, "Search expired")
 		}
