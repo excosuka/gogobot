@@ -91,7 +91,7 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 
 	var message string
 	for i, page := range filteredPages {
-		message += strconv.Itoa(i) + page.URL + "\n"
+		message += strconv.Itoa(i+1) + ". " + page.URL + "\n"
 	}
 	messageToAnswer := msgQuery + "\n " + message
 
@@ -117,6 +117,10 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 func (p *Processor) handleWaitingForTags(s *types.UserSession, text string) (err error) {
 	defer func() { err = e.WrapIfErr("can`t set hashtags to page", err) }()
 
+	if strings.HasPrefix(text, "/") {
+		return p.tgClient.SendMessage(s.ChatId,
+			"You maybe have a mistake, now you are in hashtags input mode.\nIf you wanna go out use: /cancel")
+	}
 	tags := normalizeTags(strings.Fields(text))
 
 	if len(tags) == 0 {

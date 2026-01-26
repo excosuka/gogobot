@@ -47,7 +47,7 @@ func listPagesToMessage(parts []*storage.Page) string {
 	for i, file := range parts {
 		counter := strconv.Itoa(i + 1)
 		if len(file.Tags) > 0 {
-			message += fmt.Sprintf("Page %s: %s With Tags: %s \n", counter, file.URL, normalizeTags(file.Tags))
+			message += fmt.Sprintf("Page %s: %s With Tags: %s \n", counter, file.URL, file.Tags)
 		} else {
 			message += fmt.Sprintf("Page %s: %s \n", counter, file.URL)
 		}

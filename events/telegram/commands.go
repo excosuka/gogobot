@@ -13,7 +13,7 @@ import (
 )
 
 func (p *Processor) handleMessage(s *types.UserSession, text string) error {
-	if text == "/cancel" {
+	if text == botCommands.CancelCmd {
 		stateStorage.ResetSession(s)
 		return p.tgClient.SendMessage(s.ChatId, msgCanceled)
 	}
@@ -50,7 +50,7 @@ func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 			return err
 		}
 
-		messageToAnswer = page.URL + "\n(URL was deleted from storage)"
+		messageToAnswer = "🎯 Here your url:\n" + page.URL + "\n(URL was deleted from storage)"
 
 	case botCommands.PeekMode:
 
@@ -63,7 +63,7 @@ func (p *Processor) sendRandom(s *types.UserSession, mode string) (err error) {
 			return err
 		}
 
-		messageToAnswer = page.URL + "\n(URL wasn`t deleted from storage)"
+		messageToAnswer = "👀 Here your url:\n" + page.URL + "\n(URL wasn`t deleted from storage)"
 
 	}
 	if err = p.tgClient.SendMessage(s.ChatId, messageToAnswer); err != nil {

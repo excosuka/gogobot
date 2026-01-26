@@ -9,4 +9,5 @@ const (
 	MenuMode  = "/menu"
 	ListCmd   = "/list"
 	SearchCmd = "/search"
+	CancelCmd = "/cancel"
 )
