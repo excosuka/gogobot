@@ -29,6 +29,16 @@ var Count = ButtonCommand{
 	CallbackData: "menu:count",
 }
 
+var CancelSearch = ButtonCommand{
+	Text:         "❌ Cancel to Search",
+	CallbackData: "search:cancel",
+}
+
+var CancelAdd = ButtonCommand{
+	Text:         "❌ Cancel to add link",
+	CallbackData: "page:cancel",
+}
+
 var SearchRepeat = ButtonCommand{
 	Text:         "🔁 Repeat search",
 	CallbackData: "search:repeat",
@@ -58,7 +68,7 @@ func BuildSearchResultKeyboard(pages []*storage.Page) ReplyMenuKeyboard {
 	for i := range pages {
 		rows = append(rows, []ButtonCommand{
 			{
-				Text:         strconv.Itoa(i),
+				Text:         strconv.Itoa(i + 1),
 				CallbackData: "search:pick:" + strconv.Itoa(i),
 			},
 		})
@@ -66,12 +76,24 @@ func BuildSearchResultKeyboard(pages []*storage.Page) ReplyMenuKeyboard {
 
 	rows = append(rows, []ButtonCommand{
 		{
-			Text:         "Cancel",
+			Text:         "❌ Cancel",
 			CallbackData: "search:cancel",
 		},
 	})
 
 	return ReplyMenuKeyboard{
 		InlineKeyboard: rows,
+	}
+}
+
+func BuildCancelSearchKeyboard() ReplyMenuKeyboard {
+	return ReplyMenuKeyboard{
+		InlineKeyboard: [][]ButtonCommand{{CancelSearch}},
+	}
+}
+
+func BuildCancelAddKeyboard() ReplyMenuKeyboard {
+	return ReplyMenuKeyboard{
+		InlineKeyboard: [][]ButtonCommand{{CancelAdd}},
 	}
 }

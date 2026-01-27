@@ -113,7 +113,8 @@ func (p *Processor) sendMenu(s *types.UserSession) error {
 }
 
 func (p *Processor) sendHelp(s *types.UserSession) error {
-	return p.tgClient.SendMessage(s.ChatId, msgHelp)
+	keyboardForHelp := keyboards.BuildMainMenuKeyboard()
+	return p.tgClient.SendMessageWithKeyboard(s.ChatId, msgHelp, keyboardForHelp)
 }
 
 func (p *Processor) sendHello(s *types.UserSession) error {

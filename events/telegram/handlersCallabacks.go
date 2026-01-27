@@ -14,6 +14,9 @@ func (p *Processor) handlePageCallbacks(s *types.UserSession, cb callbacks.Callb
 		return p.sendRandom(s, botCommands.PickMode)
 	case "peek":
 		return p.sendRandom(s, botCommands.PeekMode)
+	case "cancel":
+		stateStorage.ResetSession(s)
+		return p.tgClient.SendMessage(s.ChatId, "Adding cancelled")
 	default:
 		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
 

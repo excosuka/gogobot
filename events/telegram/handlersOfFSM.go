@@ -35,7 +35,8 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 		s.TempURL = text
 		s.UserState = types.StateWaitingForTags
 
-		return p.tgClient.SendMessage(s.ChatId, "Waiting for hashtags")
+		cancelKeyboard := keyboards.BuildCancelAddKeyboard()
+		return p.tgClient.SendMessageWithKeyboard(s.ChatId, "Waiting for hashtags", cancelKeyboard)
 	}
 
 	switch text {
@@ -53,7 +54,8 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 		return p.sendList(s)
 	case botCommands.SearchCmd:
 		s.UserState = types.StateWaitingForTagsForSearch
-		return p.tgClient.SendMessage(s.ChatId, "Waiting tags for search")
+		keyboard := keyboards.BuildCancelSearchKeyboard()
+		return p.tgClient.SendMessageWithKeyboard(s.ChatId, msgToSpecifyHashTags, keyboard)
 
 	case botCommands.MenuMode:
 		return p.sendMenu(s)
