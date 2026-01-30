@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"gogobot/storage"
 	"time"
 )
@@ -19,15 +20,16 @@ const (
 )
 
 type UserSession struct {
-	ChatId       int
-	Username     string
-	UserState    UserState
-	TempURL      string
-	LastActivity time.Time
+	ChatId    int
+	Username  string
+	UserState UserState
+	TempURL   string
 
 	LastActions     []string
 	LastSearchTags  []string
 	LastSearchPages []*storage.Page
 	LastSearchAt    time.Time
 	SearchStartedAt time.Time
+
+	CancelTTL context.CancelFunc
 }

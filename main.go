@@ -4,16 +4,19 @@ import (
 	"flag"
 	tgClient "gogobot/clients/telegram"
 	event_consumer "gogobot/consumer/event-consumer"
+	"gogobot/events/session"
 	"gogobot/events/telegram"
+	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/storage/files"
 	"gogobot/storage/pageService"
 	"gogobot/storage/searchService"
+	"time"
 
 	"log"
 )
 
-// 8482487054:AAHWjRdwt16-9KXTnIrrbD2D9OGhAQz73wE
+const sessionTTL = 200 * time.Second
 
 const (
 	tgBotHost   = "api.telegram.org"
@@ -24,11 +27,27 @@ const (
 func main() {
 	storage := files.NewStorage(storagePath)
 
+	client := tgClient.New(tgBotHost, mustToken())
+	sessionMgr := session.NewTTLManager(
+		sessionTTL,
+		func(s *types.UserSession) {
+
+			if s.UserState != types.StateIdle {
+				_ = client.SendMessage(
+					s.ChatId,
+					"⌛ Dialog was reset cause of inactive",
+				)
+			}
+			stateStorage.ResetSession(s)
+		},
+	)
+
 	eventsProcessor := telegram.New(
-		tgClient.New(tgBotHost, mustToken()),
+		client,
 		pageService.New(storage),
 		stateStorage.New(),
 		searchService.New(storage),
+		sessionMgr,
 	)
 
 	log.Println("Starting telegram bot")
