@@ -25,7 +25,9 @@ type UserSession struct {
 	TempURL      string
 	LastActivity time.Time
 
+	LastActions     []string
 	LastSearchTags  []string
 	LastSearchPages []*storage.Page
+	LastSearchAt    time.Time
 	SearchStartedAt time.Time
 }

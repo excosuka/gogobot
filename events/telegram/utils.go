@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"gogobot/events/telegram/types"
 	"gogobot/storage"
 	"net/url"
 	"strconv"
@@ -57,4 +58,12 @@ func listPagesToMessage(parts []*storage.Page) string {
 
 	return messageToAnswer
 
+}
+
+func addAction(s *types.UserSession, action string) {
+	s.LastActions = append(s.LastActions, action)
+
+	if len(s.LastActions) > 5 {
+		s.LastActions = s.LastActions[1:]
+	}
 }

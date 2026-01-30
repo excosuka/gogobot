@@ -1,6 +1,7 @@
 package event_consumer
 
 import (
+	"errors"
 	"gogobot/events"
 	"gogobot/events/telegram"
 	"gogobot/events/telegram/types"
@@ -43,7 +44,7 @@ func (c EventConsumer) Start() error {
 
 /*
 Проблемы и идеи доработки
-1. Потеря событий: ретраи, возвращение в хранилище, фоллбек, подтверждение
+1. Потеря событий: ретраи, возвращение в хранZилище, фоллбек, подтверждение
 2. обработка всей пачки: останавливаться после первой ошибки
 3. Параллельная обработка
 */
@@ -64,8 +65,15 @@ func (c *EventConsumer) handleEvents(eventsFor []events.Event) error {
 		}
 
 		if err := c.processor.Process(event); err != nil {
-			log.Printf("[ERR] processor had met an error: %s", err)
-			continue
+			var ue telegram.UserError
+			if errors.As(err, &ue) {
+				if p, ok := c.processor.(*telegram.Processor); ok {
+					_ = ue.Send(p, event)
+				}
+				continue
+			}
+			log.Printf("[ERR] processor error: %s", err)
+
 		}
 	}
 

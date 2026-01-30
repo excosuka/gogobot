@@ -27,14 +27,15 @@ func (p *Processor) handleSearchCallbacks(s *types.UserSession, cb callbacks.Cal
 	switch cb.Action {
 	case "pick":
 		if s.LastSearchPages == nil {
-			return p.tgClient.SendMessage(s.ChatId, "Search expired")
+			return NewUserError("Search expired")
 		}
 		idx, err := strconv.Atoi(cb.Payload)
 		if err != nil {
-			return p.tgClient.SendMessage(s.ChatId, "Invalid selection")
+			return NewUserError("Invalid selection")
+
 		}
 		if idx < 0 || idx >= len(s.LastSearchPages) {
-			return p.tgClient.SendMessage(s.ChatId, "Index out of range")
+			return NewUserError("Index out of range")
 		}
 
 		page := s.LastSearchPages[idx]
@@ -42,9 +43,9 @@ func (p *Processor) handleSearchCallbacks(s *types.UserSession, cb callbacks.Cal
 
 	case "cancel":
 		stateStorage.ResetSession(s)
-		return p.tgClient.SendMessage(s.ChatId, "Search cancelled")
+		return NewUserError("Search cancelled")
 	default:
-		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
+		return NewUserError(msgUnknownCommand)
 	}
 }
 
@@ -55,7 +56,7 @@ func (p *Processor) handleMenuCallbacks(s *types.UserSession, cb callbacks.Callb
 	case "count":
 		return p.sendCount(s)
 	default:
-		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
+		return NewUserError(msgUnknownCommand)
 
 	}
 

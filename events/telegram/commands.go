@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"errors"
+	"gogobot/events"
 	keyboards "gogobot/events/telegram/keyboards"
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/botCommands"
@@ -24,9 +25,14 @@ func (p *Processor) handleMessage(s *types.UserSession, text string) error {
 		return p.handleIdle(s, text)
 
 	case types.StateWaitingForTags:
+
 		return p.handleWaitingForTags(s, text)
 
 	case types.StateWaitingForTagsForSearch:
+		if isSearchExpired(s) || len(s.LastSearchPages) == 0 {
+			stateStorage.ResetSession(s)
+			return p.tgClient.SendMessage(s.ChatId, msgZeroSearched)
+		}
 		return p.handleWaitingForTagsForSearch(s, text)
 
 	default:
@@ -123,7 +129,7 @@ func (p *Processor) sendHello(s *types.UserSession) error {
 
 func (p *Processor) repeatSearch(s *types.UserSession) error {
 	if len(s.LastSearchPages) == 0 {
-		return p.tgClient.SendMessage(s.ChatId, "No previous search")
+		return NewUserError("No previous search")
 	}
 	pages, err := p.searchService.Search(s.Username, s.LastSearchTags)
 	if err != nil {
@@ -140,7 +146,7 @@ func (p *Processor) repeatSearch(s *types.UserSession) error {
 
 func (p *Processor) pickFromSearch(s *types.UserSession) error {
 	if len(s.LastSearchPages) == 0 {
-		return p.tgClient.SendMessage(s.ChatId, "No search results")
+		return NewUserError("No search results")
 	}
 
 	page := s.LastSearchPages[rand.Intn(len(s.LastSearchPages))]
@@ -148,5 +154,18 @@ func (p *Processor) pickFromSearch(s *types.UserSession) error {
 	return p.tgClient.SendMessage(
 		s.ChatId,
 		page.URL,
+	)
+}
+
+func (p *Processor) SendUserError(
+	event events.Event,
+	err UserError,
+) error {
+
+	meta := event.Meta.(Meta)
+
+	return p.tgClient.SendMessage(
+		meta.ChatID,
+		"⚠️ "+err.Message,
 	)
 }

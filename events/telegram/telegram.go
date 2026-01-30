@@ -14,6 +14,7 @@ import (
 )
 
 const sessionTTL = 5 * time.Minute
+const searchTTL = 10 * time.Minute
 
 type Processor struct {
 	tgClient      *telegram.Client
@@ -128,7 +129,7 @@ func (p *Processor) processCallbacks(s *types.UserSession, data string) error {
 	case "menu":
 		return p.handleMenuCallbacks(s, cb)
 	default:
-		return p.tgClient.SendMessage(s.ChatId, msgUnknownCommand)
+		return NewUserError(msgUnknownCommand)
 
 	}
 

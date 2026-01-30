@@ -31,4 +31,5 @@ const (
 	msgEmptyFilteredPages = "😕 You didn`t have pages with current hashtags! "
 	msgToSpecifyHashTags  = "Specify hashtags to search by them! \nFor example: #golang"
 	msgCanceled           = "❌ You have been canceled last command."
+	msgZeroSearched       = "❌ You havent got pages with current hashtags."
 )
