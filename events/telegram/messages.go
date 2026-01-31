@@ -32,4 +32,5 @@ const (
 	msgToSpecifyHashTags  = "Specify hashtags to search by them! \nFor example: #golang"
 	msgCanceled           = "❌ You have been canceled last command."
 	msgZeroSearched       = "❌ You havent got pages with current hashtags."
+	msgParsingRuntime     = "🔍 Parsing this page…"
 )

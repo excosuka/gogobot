@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"gogobot/events/telegram/types"
+	"gogobot/parserService"
 	"gogobot/storage"
 	"net/url"
 	"strconv"
@@ -66,4 +67,19 @@ func addAction(s *types.UserSession, action string) {
 	if len(s.LastActions) > 5 {
 		s.LastActions = s.LastActions[1:]
 	}
+}
+
+func renderPreview(p *parserService.ParsedPage) string {
+	msg := ""
+	if p.Title != "" {
+		msg += "📎 " + p.Title + "\n"
+	}
+	if p.Description != "" {
+		msg += p.Description + "\n"
+	}
+	if p.SiteName != "" {
+		msg += "🌐 " + p.SiteName + "\n"
+	}
+	msg += p.URL
+	return msg
 }

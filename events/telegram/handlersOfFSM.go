@@ -35,11 +35,13 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 			return p.tgClient.SendMessage(s.ChatId, msgAlreadyExists)
 		}
 
-		s.TempURL = text
-		s.UserState = types.StateWaitingForTags
+		_ = p.tgClient.SendMessage(s.ChatId, msgParsingRuntime)
 
-		cancelKeyboard := keyboards.BuildCancelAddKeyboard()
-		return p.tgClient.SendMessageWithKeyboard(s.ChatId, "Waiting for hashtags", cancelKeyboard)
+		go p.parseAndPreview(s.ChatId, text)
+
+		return nil
+		//cancelKeyboard := keyboards.BuildCancelAddKeyboard()
+		//return p.tgClient.SendMessageWithKeyboard(s.ChatId, "Waiting for hashtags", cancelKeyboard)
 	}
 
 	switch text {
@@ -65,7 +67,8 @@ func (p *Processor) handleIdle(s *types.UserSession, text string) error {
 		addAction(s, "completed command "+botCommands.SearchCmd)
 		s.UserState = types.StateWaitingForTagsForSearch
 		keyboard := keyboards.BuildCancelSearchKeyboard()
-		return p.tgClient.SendMessageWithKeyboard(s.ChatId, msgToSpecifyHashTags, keyboard)
+		_, err := p.tgClient.SendMessageWithKeyboard(s.ChatId, msgToSpecifyHashTags, keyboard)
+		return err
 
 	case botCommands.MenuMode:
 		return p.sendMenu(s)
@@ -110,11 +113,14 @@ func (p *Processor) handleWaitingForTagsForSearch(s *types.UserSession, text str
 	s.LastSearchTags = tags
 	s.LastSearchPages = filteredPages
 	s.LastSearchAt = time.Now()
-	stateStorage.ResetSession(s)
+	s.UserState = types.StateIdle
+	if err := p.stateStorage.Save(s); err != nil {
+		return err
+	}
 
 	kb := keyboards.BuildSearchResultKeyboard(filteredPages)
 
-	if err := p.tgClient.SendMessageWithKeyboard(
+	if _, err := p.tgClient.SendMessageWithKeyboard(
 		s.ChatId,
 		messageToAnswer,
 		kb,

@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"gogobot/parserService"
 	"gogobot/storage"
 	"time"
 )
@@ -17,6 +18,7 @@ const (
 	StateIdle                    UserState = "idle"
 	StateWaitingForTags          UserState = "waiting_for_tags"
 	StateWaitingForTagsForSearch UserState = "waiting_for_tags_for_search"
+	StateWaitingForParseConfirm  UserState = "waiting_for_parse_confirm"
 )
 
 type UserSession struct {
@@ -25,6 +27,7 @@ type UserSession struct {
 	UserState UserState
 	TempURL   string
 
+	LastMessageID   int
 	LastActions     []string
 	LastSearchTags  []string
 	LastSearchPages []*storage.Page
@@ -32,4 +35,6 @@ type UserSession struct {
 	SearchStartedAt time.Time
 
 	CancelTTL context.CancelFunc
+
+	ParsedPage *parserService.ParsedPage
 }

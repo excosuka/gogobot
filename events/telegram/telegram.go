@@ -9,6 +9,7 @@ import (
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/stateStorage"
 	"gogobot/lib/e"
+	"gogobot/parserService"
 	"gogobot/storage/pageService"
 	"gogobot/storage/searchService"
 	"time"
@@ -23,6 +24,7 @@ type Processor struct {
 	stateStorage  *stateStorage.StateStorage
 	searchService searchService.Service
 	sessionManger session.Manager
+	parserService parserService.ParserService
 }
 
 type Meta struct {
@@ -42,6 +44,7 @@ func New(
 	stateStorage *stateStorage.StateStorage,
 	searchService searchService.Service,
 	sessionMgr session.Manager,
+	parserService parserService.ParserService,
 ) *Processor {
 	return &Processor{
 		tgClient:      client,
@@ -49,6 +52,7 @@ func New(
 		stateStorage:  stateStorage,
 		searchService: searchService,
 		sessionManger: sessionMgr,
+		parserService: parserService,
 	}
 }
 
@@ -139,6 +143,8 @@ func (p *Processor) processCallbacks(s *types.UserSession, data string) error {
 		return p.handleSearchCallbacks(s, cb)
 	case "menu":
 		return p.handleMenuCallbacks(s, cb)
+	case "parse":
+		return p.handleParseCallbacks(s, cb)
 	default:
 		return NewUserError(msgUnknownCommand)
 

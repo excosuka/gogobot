@@ -61,3 +61,45 @@ func (p *Processor) handleMenuCallbacks(s *types.UserSession, cb callbacks.Callb
 	}
 
 }
+
+func (p *Processor) handleParseCallbacks(s *types.UserSession, cb callbacks.Callback) error {
+	switch cb.Action {
+	case "save":
+		if s.ParsedPage == nil || s.TempURL == "" {
+			return NewUserError("Nothing to save")
+		}
+
+		page := s.ParsedPage
+		page.URL = s.TempURL
+		s.ParsedPage = page
+
+		stateStorage.ResetSession(s)
+		return p.tgClient.SendMessage(s.ChatId, "✅ Saved")
+
+	case "edit":
+		if s.ParsedPage == nil || s.TempURL == "" {
+			return NewUserError("Nothing to edit")
+		}
+
+		s.UserState = types.StateWaitingForTags
+
+		if err := p.stateStorage.Save(s); err != nil {
+			return err
+		}
+
+		_ = p.tgClient.EditMessageReplyMarkup(s.ChatId, s.LastMessageID)
+
+		return p.tgClient.SendMessage(
+			s.ChatId,
+			"✏️ Введи теги через пробел или #",
+		)
+
+	case "cancel":
+		stateStorage.ResetSession(s)
+		return NewUserError("Adding cancelled")
+	default:
+		return NewUserError(msgUnknownCommand)
+
+	}
+
+}

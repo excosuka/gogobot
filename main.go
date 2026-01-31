@@ -8,6 +8,7 @@ import (
 	"gogobot/events/telegram"
 	"gogobot/events/telegram/types"
 	"gogobot/events/telegram/types/stateStorage"
+	"gogobot/parserService"
 	"gogobot/storage/files"
 	"gogobot/storage/pageService"
 	"gogobot/storage/searchService"
@@ -42,12 +43,15 @@ func main() {
 		},
 	)
 
+	parserService := parserService.New()
+
 	eventsProcessor := telegram.New(
 		client,
 		pageService.New(storage),
 		stateStorage.New(),
 		searchService.New(storage),
 		sessionMgr,
+		parserService,
 	)
 
 	log.Println("Starting telegram bot")

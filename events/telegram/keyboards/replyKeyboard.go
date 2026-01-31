@@ -97,3 +97,24 @@ func BuildCancelAddKeyboard() ReplyMenuKeyboard {
 		InlineKeyboard: [][]ButtonCommand{{CancelAdd}},
 	}
 }
+
+func BuildParseConfirmKeyboard() ReplyMenuKeyboard {
+	return ReplyMenuKeyboard{
+		InlineKeyboard: [][]ButtonCommand{
+			{
+				{
+					Text:         "✅ Сохранить",
+					CallbackData: "parse:save",
+				},
+				{
+					Text:         "✏️ Изменить теги",
+					CallbackData: "parse:edit",
+				},
+				{
+					Text:         "❌ Отмена",
+					CallbackData: "parse:cancel",
+				},
+			},
+		},
+	}
+}

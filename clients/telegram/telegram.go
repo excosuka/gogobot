@@ -67,24 +67,35 @@ func (c *Client) SendMessage(chatID int, text string) error {
 	return nil
 }
 
-func (c *Client) SendMessageWithKeyboard(chatID int, text string, keyboard keyboards.ReplyMenuKeyboard) error {
+type SendMessageResponse struct {
+	Ok     bool `json:"ok"`
+	Result struct {
+		MessageID int `json:"message_id"`
+	} `json:"result"`
+}
+
+func (c *Client) SendMessageWithKeyboard(chatID int, text string, keyboard keyboards.ReplyMenuKeyboard) (int, error) {
 	q := url.Values{}
 	keyboardToJson, err := json.Marshal(keyboard)
 	if err != nil {
-		return e.Wrap("can`t marshal keyboard to json", err)
+		return 0, e.Wrap("can't marshal keyboard to json", err)
 	}
 
 	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
 	q.Add("reply_markup", string(keyboardToJson))
 
-	_, err = c.doRequest(sendMessageMethod, q)
+	data, err := c.doRequest(sendMessageMethod, q)
 	if err != nil {
-		return e.Wrap("can`t send message", err)
+		return 0, e.Wrap("can't send message", err)
 	}
 
-	return nil
+	var resp SendMessageResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return 0, e.Wrap("can't parse sendMessage response", err)
+	}
 
+	return resp.Result.MessageID, nil
 }
 
 func (c *Client) doRequest(method string, query url.Values) (data []byte, err error) {
@@ -118,4 +129,15 @@ func (c *Client) doRequest(method string, query url.Values) (data []byte, err er
 
 	return body, nil
 
+}
+func (c *Client) EditMessageReplyMarkup(chatID int, messageID int) error {
+	q := url.Values{}
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("message_id", strconv.Itoa(messageID))
+
+	_, err := c.doRequest("editMessageReplyMarkup", q)
+	if err != nil {
+		return e.Wrap("can't edit message reply markup", err)
+	}
+	return nil
 }

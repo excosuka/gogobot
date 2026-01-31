@@ -33,4 +33,6 @@ func (s *StateStorage) Save(session *types.UserSession) error {
 func ResetSession(s *types.UserSession) {
 	s.UserState = types.StateIdle
 	s.TempURL = ""
+	s.ParsedPage = nil
+
 }

@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"errors"
 	"gogobot/events"
 	keyboards "gogobot/events/telegram/keyboards"
@@ -11,6 +12,7 @@ import (
 	"gogobot/storage"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 func (p *Processor) handleMessage(s *types.UserSession, text string) error {
@@ -25,7 +27,6 @@ func (p *Processor) handleMessage(s *types.UserSession, text string) error {
 		return p.handleIdle(s, text)
 
 	case types.StateWaitingForTags:
-
 		return p.handleWaitingForTags(s, text)
 
 	case types.StateWaitingForTagsForSearch:
@@ -114,13 +115,14 @@ func (p *Processor) sendList(s *types.UserSession) (err error) {
 }
 func (p *Processor) sendMenu(s *types.UserSession) error {
 	keyboard := keyboards.BuildMainMenuKeyboard()
-
-	return p.tgClient.SendMessageWithKeyboard(s.ChatId, "Main menu", keyboard)
+	_, err := p.tgClient.SendMessageWithKeyboard(s.ChatId, "Main menu", keyboard)
+	return err
 }
 
 func (p *Processor) sendHelp(s *types.UserSession) error {
 	keyboardForHelp := keyboards.BuildMainMenuKeyboard()
-	return p.tgClient.SendMessageWithKeyboard(s.ChatId, msgHelp, keyboardForHelp)
+	_, err := p.tgClient.SendMessageWithKeyboard(s.ChatId, msgHelp, keyboardForHelp)
+	return err
 }
 
 func (p *Processor) sendHello(s *types.UserSession) error {
@@ -136,12 +138,12 @@ func (p *Processor) repeatSearch(s *types.UserSession) error {
 		return err
 	}
 	s.LastSearchPages = pages
-
-	return p.tgClient.SendMessageWithKeyboard(
+	_, err = p.tgClient.SendMessageWithKeyboard(
 		s.ChatId,
 		listPagesToMessage(pages),
 		keyboards.BuildSearchResultKeyboard(pages),
 	)
+	return err
 }
 
 func (p *Processor) pickFromSearch(s *types.UserSession) error {
@@ -167,5 +169,40 @@ func (p *Processor) SendUserError(
 	return p.tgClient.SendMessage(
 		meta.ChatID,
 		"⚠️ "+err.Message,
+	)
+}
+
+func (p *Processor) parseAndPreview(chatID int, url string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	page, err := p.parserService.Parse(ctx, url)
+	if err != nil {
+		_ = p.tgClient.SendMessage(chatID, "❌ Не удалось разобрать страницу")
+		return
+	}
+
+	s, err := p.stateStorage.Get(chatID)
+	if err != nil || s == nil {
+		return
+	}
+
+	if s.UserState != types.StateIdle {
+		_ = p.tgClient.SendMessage(chatID, "ℹ️ Парсинг отменён")
+		return
+	}
+
+	s.TempURL = url
+	s.ParsedPage = page
+	s.UserState = types.StateWaitingForTags
+
+	if err := p.stateStorage.Save(s); err != nil {
+		return
+	}
+
+	_, _ = p.tgClient.SendMessageWithKeyboard(
+		chatID,
+		renderPreview(page),
+		keyboards.BuildParseConfirmKeyboard(),
 	)
 }
